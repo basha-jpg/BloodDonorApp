@@ -215,16 +215,29 @@
             }
         }
 
-        function filterTable() {
-            const filterValue = document.getElementById('nameFilter').value.toUpperCase();
-            const container = document.getElementById('adminTableBody');
-            
-            const filteredDonors = allDonorsCache.filter(donor => {
-                return donor.Name.toUpperCase().includes(filterValue);
-            });
-            
-            renderAdminTable(filteredDonors, container);
-        }
+       function filterTable() {
+    const filterInput = document.getElementById('nameFilter');
+    const container = document.getElementById('adminTableBody');
+
+    // 1. Check if the search input is empty. If so, show all donors.
+    if (!filterInput || filterInput.value.trim() === '') {
+        renderAdminTable(allDonorsCache, container);
+        return;
+    }
+    
+    // 2. Process the search term (safe because we checked for empty string above)
+    const filterValue = filterInput.value.trim().toUpperCase();
+
+    // 3. Filter the cache
+    const filteredDonors = allDonorsCache.filter(donor => {
+        // Ensure donor.Name exists before trying to convert to uppercase
+        const donorName = donor.Name ? donor.Name.toUpperCase() : '';
+        return donorName.includes(filterValue);
+    });
+    
+    // 4. Render the filtered results
+    renderAdminTable(filteredDonors, container);
+}
         
         function showAlert(message, type = 'error') {
             const alertBox = document.getElementById('adminAlertBox');
