@@ -2,257 +2,252 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Blood Donor Management</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f7f9fc;
-        }
-        .container-card {
-            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        .table-header {
-            background-color: #1e3a8a; /* Admin Blue */
-        }
-        .nav-link {
-            @apply text-white font-medium px-3 py-2 rounded-md text-sm hover:bg-blue-700 transition-colors;
-        }
-        .btn-available {
-            @apply bg-green-500 hover:bg-green-600 text-white text-xs font-bold py-1 px-2 rounded-full;
-        }
-        .btn-unavailable {
-            @apply bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold py-1 px-2 rounded-full;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel - Blood Donor Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f7f9fc; }
+    .container-card { box-shadow: 0 10px 25px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05); }
+    .table-header { background-color: #1e3a8a; }
+
+    /* Replaced Tailwind @apply with normal CSS so it works without a build step */
+    .nav-link { color:#fff; font-weight:500; padding:0.5rem 0.75rem; border-radius:0.375rem; font-size:0.875rem; transition:background-color .2s; display:inline-block; }
+    .nav-link:hover { background-color:#1d4ed8; }
+    .btn-available { background:#22c55e; color:#fff; font-weight:700; font-size:0.75rem; padding:0.25rem 0.5rem; border-radius:9999px; }
+    .btn-available:hover { background:#16a34a; }
+    .btn-unavailable { background:#f59e0b; color:#fff; font-weight:700; font-size:0.75rem; padding:0.25rem 0.5rem; border-radius:9999px; }
+    .btn-unavailable:hover { background:#d97706; }
+    .status-available { color:#16a34a; font-weight:700; }
+    .status-unavailable { color:#ca8a04; font-weight:700; }
+  </style>
 </head>
 <body class="p-4 md:p-8">
+  <div class="max-w-5xl mx-auto">
 
-    <div class="max-w-5xl mx-auto">
-
-        <nav class="bg-blue-800 rounded-lg shadow-md mb-6">
-            <div class="max-w-5xl mx-auto px-4">
-                <div class="flex justify-between h-16">
-                    <div class="flex items-center">
-                        <span class="text-xl font-bold text-white">Admin Panel</span>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <a href="./index.html" class="nav-link">Public Search</a>
-                        <a href="./admin.html" class="nav-link bg-blue-900">Admin Panel</a>
-                    </div>
-                </div>
-            </div>
-        </nav>
-
-        <!-- Password Protection Overlay -->
-        <div id="passwordOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
-            <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-                <h2 class="text-lg font-bold mb-4">Admin Access Required</h2>
-                <p class="text-sm text-gray-600 mb-3">Please enter the password to manage donors.</p>
-                <input type="password" id="passwordInput" class="w-full p-2 border border-gray-300 rounded-lg mb-3" placeholder="Password...">
-                <button id="loginButton" onclick="checkPassword()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
-                    Unlock
-                </button>
-                <p id="passwordError" class="text-red-500 text-xs mt-2" style="display: none;">Incorrect password. Please try again.</p>
-            </div>
+    <nav class="bg-blue-800 rounded-lg shadow-md mb-6">
+      <div class="max-w-5xl mx-auto px-4">
+        <div class="flex justify-between h-16">
+          <div class="flex items-center">
+            <span class="text-xl font-bold text-white">Admin Panel</span>
+          </div>
+          <div class="flex items-center space-x-4">
+            <a href="./index.html" class="nav-link">Public Search</a>
+            <a href="./admin.html" class="nav-link" style="background:#1e3a8a;">Admin Panel</a>
+          </div>
         </div>
+      </div>
+    </nav>
 
-        <!-- Main Content (Hidden until authenticated) -->
-        <div id="mainContent" class="hidden">
-            <div class="container-card bg-white rounded-xl shadow-xl overflow-hidden">
-                <h2 class="table-header text-white font-semibold p-3 text-lg">Manage Donor Availability (<span id="totalCount">0</span> Total Donors)</h2>
-                
-                <div class="p-4">
-                    <input type="text" id="nameFilter" onkeyup="filterTable()" placeholder="Filter by name..." class="w-full p-2 border border-gray-300 rounded-lg">
-                </div>
-                
-                <div id="adminAlertBox" class="p-4 m-4" style="display: none;"></div>
-
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blood Group</th>
-                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Status</th>
-                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="adminTableBody" class="bg-white divide-y divide-gray-200">
-                            <!-- Rows will be populated by JavaScript -->
-                        </tbody>
-                    </table>
-                    <div id="noAdminResults" class="p-6 text-center text-gray-500 font-medium" style="display: none;">
-                        Loading donor data...
-                    </div>
-                </div>
-            </div>
-        </div>
-
+    <!-- Password Protection Overlay -->
+    <div id="passwordOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+      <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+        <h2 class="text-lg font-bold mb-4">Admin Access Required</h2>
+        <p class="text-sm text-gray-600 mb-3">Please enter the password to manage donors.</p>
+        <input type="password" id="passwordInput" class="w-full p-2 border border-gray-300 rounded-lg mb-3" placeholder="Password...">
+        <button id="loginButton" onclick="checkPassword()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
+          Unlock
+        </button>
+        <p id="passwordError" class="text-red-500 text-xs mt-2" style="display:none;">Incorrect password. Please try again.</p>
+      </div>
     </div>
 
-    <script>
-        const ADMIN_PASSWORD = "project2025";
-        let allDonorsCache = []; // Cache to store all donors for filtering
+    <!-- Main Content (Hidden until authenticated) -->
+    <div id="mainContent" class="hidden">
+      <div class="container-card bg-white rounded-xl shadow-xl overflow-hidden">
+        <h2 class="table-header text-white font-semibold p-3 text-lg">
+          Manage Donor Availability (<span id="totalCount">0</span> Total Donors)
+        </h2>
 
-        function checkPassword() {
-            const passwordInput = document.getElementById('passwordInput');
-            const passwordError = document.getElementById('passwordError');
-            
-            if (passwordInput.value === ADMIN_PASSWORD) {
-                document.getElementById('passwordOverlay').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
-                loadAllDonors();
-            } else {
-                passwordError.style.display = 'block';
-            }
+        <div class="p-4">
+          <input type="text" id="nameFilter" onkeyup="filterTable()" placeholder="Filter by name..." class="w-full p-2 border border-gray-300 rounded-lg">
+        </div>
+
+        <div id="adminAlertBox" class="p-4 m-4" style="display:none;"></div>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blood Group</th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Status</th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+              </tr>
+            </thead>
+            <tbody id="adminTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+          <div id="noAdminResults" class="p-6 text-center text-gray-500 font-medium" style="display:none;">
+            Loading donor data...
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const ADMIN_PASSWORD = "project2025";
+    const API_BASE_URL = "http://127.0.0.1:5000"; // <-- define base URL
+    let allDonorsCache = [];
+
+    function checkPassword() {
+      const passwordInput = document.getElementById('passwordInput');
+      const passwordError = document.getElementById('passwordError');
+
+      if (passwordInput.value === ADMIN_PASSWORD) {
+        document.getElementById('passwordOverlay').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+        loadAllDonors();
+      } else {
+        passwordError.style.display = 'block';
+      }
+    }
+
+    async function loadAllDonors() {
+      const resultsBody = document.getElementById('adminTableBody');
+      const resultCountSpan = document.getElementById('totalCount');
+      const noResultsDiv = document.getElementById('noAdminResults');
+      const alertBox = document.getElementById('adminAlertBox');
+
+      resultsBody.innerHTML = '';
+      noResultsDiv.style.display = 'block';
+      noResultsDiv.textContent = 'Loading donor data...';
+      alertBox.style.display = 'none';
+
+      try {
+        const url = `${API_BASE_URL}/api/donors/search`;
+        const response = await fetch(url);
+
+        if (!response.ok) throw new Error(`Server returned status: ${response.status}`);
+
+        allDonorsCache = await response.json();
+        resultCountSpan.textContent = allDonorsCache.length;
+
+        if (allDonorsCache.length === 0) {
+          noResultsDiv.textContent = 'No donors found in the database.';
+        } else {
+          noResultsDiv.style.display = 'none';
+          renderAdminTable(allDonorsCache, resultsBody);
         }
+      } catch (error) {
+        showAlert(`Error loading donors: ${error.message}. Ensure backend is running and CORS is enabled if needed.`, 'error');
+        noResultsDiv.textContent = 'Error loading donor data.';
+        console.error('Fetch Error:', error);
+      }
+    }
 
-        async function loadAllDonors() {
-            const resultsBody = document.getElementById('adminTableBody');
-            const resultCountSpan = document.getElementById('totalCount');
-            const noResultsDiv = document.getElementById('noAdminResults');
-            const alertBox = document.getElementById('adminAlertBox');
+    function renderAdminTable(donors, container) {
+      container.innerHTML = '';
+      donors.forEach((donor) => {
+        const row = document.createElement('tr');
+        row.id = `donor-row-${donor.id}`;
 
-            resultsBody.innerHTML = '';
-            noResultsDiv.style.display = 'block';
-            noResultsDiv.textContent = 'Loading donor data...';
-            alertBox.style.display = 'none';
+        const isAvailable = String(donor.Availability_Status).toUpperCase() === 'AVAILABLE';
+        const statusText = isAvailable ? 'Available' : 'Unavailable';
 
-            try {
-                // We use the same search endpoint but without a blood_group to get ALL donors
-                const url = `http://127.0.0.1:5000/api/donors/search`;
-                const response = await fetch(url);
+        row.innerHTML = `
+          <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-500">${donor.id}</td>
+          <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${donor.Name}</td>
+          <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 font-semibold">${donor.Blood_Group}</td>
+          <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">${donor.Phone_Number}</td>
+          <td id="status-${donor.id}" class="px-3 py-3 whitespace-nowrap text-sm ${isAvailable ? 'status-available' : 'status-unavailable'}">
+            ${statusText}
+          </td>
+          <td class="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">
+            <button id="btn-${donor.id}" onclick="updateStatus('${donor.id}')" class="${isAvailable ? 'btn-unavailable' : 'btn-available'}">
+              Set ${isAvailable ? 'Unavailable' : 'Available'}
+            </button>
+          </td>
+        `;
+        container.appendChild(row);
+      });
+    }
 
-                if (!response.ok) {
-                    throw new Error(`Server returned status: ${response.status}`);
-                }
+    // Fixed: matches onclick signature and safely toggles UI + server
+    function updateStatus(donorId) {
+      const statusEl = document.getElementById(`status-${donorId}`);
+      const btnEl = document.getElementById(`btn-${donorId}`);
 
-                allDonorsCache = await response.json();
-                resultCountSpan.textContent = allDonorsCache.length;
-                
-                if (allDonorsCache.length === 0) {
-                    noResultsDiv.textContent = 'No donors found in the database.';
-                } else {
-                    noResultsDiv.style.display = 'none';
-                    renderAdminTable(allDonorsCache, resultsBody);
-                }
+      if (!statusEl || !btnEl) {
+        showAlert('UI elements not found for this row. Please reload.', 'error');
+        return;
+      }
 
-            } catch (error) {
-                showAlert(`Error loading donors: ${error.message}. Ensure backend is running.`, 'error');
-                noResultsDiv.textContent = 'Error loading donor data.';
-                console.error('Fetch Error:', error);
-            }
-        }
-        
-        function renderAdminTable(donors, container) {
-            container.innerHTML = ''; // Clear previous results
-            donors.forEach((donor, index) => {
-                const row = document.createElement('tr');
-                row.id = `donor-row-${donor.id}`; // Unique ID for the row
-                
-                const isAvailable = donor.Availability_Status.toUpperCase() === 'AVAILABLE';
-                const statusClass = isAvailable ? 'text-green-600' : 'text-yellow-600';
-                const buttonClass = isAvailable ? 'btn-unavailable' : 'btn-available';
-                const buttonText = isAvailable ? 'Set Unavailable' : 'Set Available';
-                const newStatus = isAvailable ? 'Unavailable' : 'Available';
+      const current = statusEl.textContent.trim().toUpperCase();
+      const newStatus = current === 'AVAILABLE' ? 'Unavailable' : 'Available';
 
-                row.innerHTML = `
-                    <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-500">${donor.id}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${donor.Name}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 font-semibold">${donor.Blood_Group}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">${donor.Phone_Number}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm font-bold ${statusClass}">${donor.Availability_Status}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">
-                        <button onclick="updateStatus('${donor.id}', '${newStatus}')" class="${buttonClass}">
-                            ${buttonText}
-                        </button>
-                    </td>
-                `;
-                container.appendChild(row);
-            });
-        }
+      btnEl.disabled = true;
+      const prevBtnText = btnEl.textContent;
+      btnEl.textContent = 'Updating...';
 
-        async function updateStatus(donorId, newStatus) {
-            const alertBox = document.getElementById('adminAlertBox');
-            try {
-                const url = `http://127.0.0.1:5000/api/donors/update_status`;
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ 
-                        id: donorId,
-                        new_status: newStatus 
-                    }),
-                });
+      const payload = { id: donorId, new_status: newStatus };
 
-                if (!response.ok) {
-                    throw new Error(`Server returned status: ${response.status}`);
-                }
-                
-                const updatedDonor = await response.json();
+      fetch(`${API_BASE_URL}/api/donors/update_status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(resp => {
+        if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+        return resp.json();
+      })
+      .then(() => {
+        // Update UI
+        statusEl.textContent = newStatus;
+        statusEl.classList.remove('status-available', 'status-unavailable');
+        statusEl.classList.add(newStatus === 'Available' ? 'status-available' : 'status-unavailable');
 
-                // Update the cache
-                const donorIndex = allDonorsCache.findIndex(d => d.id == donorId);
-                if (donorIndex !== -1) {
-                    allDonorsCache[donorIndex] = updatedDonor;
-                }
-                
-                // Re-render the table with the current filter
-                filterTable();
-                
-                showAlert('Donor status updated successfully!', 'success');
+        btnEl.textContent = `Set ${newStatus === 'Available' ? 'Unavailable' : 'Available'}`;
+        btnEl.classList.remove('btn-available', 'btn-unavailable');
+        btnEl.classList.add(newStatus === 'Available' ? 'btn-unavailable' : 'btn-available');
 
-            } catch (error) {
-                showAlert(`Error updating status: ${error.message}.`, 'error');
-                console.error('Update Error:', error);
-            }
-        }
+        // Sync cache
+        const idx = allDonorsCache.findIndex(d => String(d.id) === String(donorId));
+        if (idx !== -1) allDonorsCache[idx].Availability_Status = newStatus;
 
-       function filterTable() {
-    const filterInput = document.getElementById('nameFilter');
-    const container = document.getElementById('adminTableBody');
+        showAlert('Status updated successfully.', 'success');
+      })
+      .catch(err => {
+        showAlert(`Update failed: ${err.message}`, 'error');
+        console.error('Update Error:', err);
+        btnEl.textContent = prevBtnText;
+      })
+      .finally(() => {
+        btnEl.disabled = false;
+      });
+    }
 
-    // 1. Check if the search input is empty. If so, show all donors.
-    if (!filterInput || filterInput.value.trim() === '') {
+    function filterTable() {
+      const filterInput = document.getElementById('nameFilter');
+      const container = document.getElementById('adminTableBody');
+
+      if (!filterInput || filterInput.value.trim() === '') {
         renderAdminTable(allDonorsCache, container);
         return;
-    }
-    
-    // 2. Process the search term (safe because we checked for empty string above)
-    const filterValue = filterInput.value.trim().toUpperCase();
+      }
+      const filterValue = filterInput.value.trim().toUpperCase();
 
-    // 3. Filter the cache
-    const filteredDonors = allDonorsCache.filter(donor => {
-        // Ensure donor.Name exists before trying to convert to uppercase
-        const donorName = donor.Name ? donor.Name.toUpperCase() : '';
-        return donorName.includes(filterValue);
-    });
-    
-    // 4. Render the filtered results
-    renderAdminTable(filteredDonors, container);
-}
-        
-        function showAlert(message, type = 'error') {
-            const alertBox = document.getElementById('adminAlertBox');
-            alertBox.textContent = message;
-            if (type === 'error') {
-                alertBox.className = 'p-4 m-4 bg-red-100 border border-red-400 text-red-700 rounded-lg';
-            } else {
-                alertBox.className = 'p-4 m-4 bg-green-100 border border-green-400 text-green-700 rounded-lg';
-            }
-            alertBox.style.display = 'block';
-            
-            setTimeout(() => {
-                alertBox.style.display = 'none';
-            }, 3000);
-        }
-    </script>
+      const filtered = allDonorsCache.filter(d => {
+        const name = d.Name ? String(d.Name).toUpperCase() : '';
+        return name.includes(filterValue);
+      });
+
+      renderAdminTable(filtered, container);
+    }
+
+    function showAlert(message, type = 'error') {
+      const alertBox = document.getElementById('adminAlertBox');
+      alertBox.textContent = message;
+      alertBox.className = type === 'error'
+        ? 'p-4 m-4 bg-red-100 border border-red-400 text-red-700 rounded-lg'
+        : 'p-4 m-4 bg-green-100 border border-green-400 text-green-700 rounded-lg';
+      alertBox.style.display = 'block';
+      setTimeout(() => { alertBox.style.display = 'none'; }, 3000);
+    }
+  </script>
 </body>
 </html>
