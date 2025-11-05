@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood Donor Search - College Project (Backend API)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc;
+        }
+        .container-card {
+            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .table-header {
+            background-color: #dc2626;
+        }
+        .status-available {
+            color: #10b981;
+            font-weight: 600;
+        }
+        .status-unavailable {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+        .search-header-icon {
+            background-color: #b91c1c;
+            padding: 0.5rem;
+            border-radius: 0.5rem 0.5rem 0 0;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        
+        <div class="container-card bg-white rounded-xl shadow-xl overflow-hidden mb-8">
+            <div class="search-header-icon flex items-center justify-center space-x-2">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <h1 class="text-xl font-bold text-white uppercase tracking-wider">Search for Blood Donor</h1>
+            </div>
+
+            <div id="search-form" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <div class="flex flex-col">
+                    <label for="bloodGroup" class="text-sm font-medium text-gray-700 mb-1">Blood Group</label>
+                    <select id="bloodGroup" class="p-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 transition duration-150 ease-in-out">
+                        <option value="">Select Blood Group</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A- (No Data)</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                    </select>
+                </div>
+
+                <div class="flex flex-col">
+                    <label for="country" class="text-sm font-medium text-gray-700 mb-1">Select Country</label>
+                    <select id="country" disabled class="p-2 bg-gray-100 border border-gray-300 rounded-lg">
+                        <option value="INDIA">INDIA</option>
+                    </select>
+                </div>
+
+                <div class="flex flex-col">
+                    <label for="state" class="text-sm font-medium text-gray-700 mb-1">Select State</label>
+                    <select id="state" disabled class="p-2 bg-gray-100 border border-gray-300 rounded-lg">
+                        <option value="Andhra Pradesh">Andhra Pradesh</option>
+                    </select>
+                </div>
+
+                <div class="flex flex-col">
+                    <label for="district" class="text-sm font-medium text-gray-700 mb-1">Select District</label>
+                    <select id="district" disabled class="p-2 bg-gray-100 border border-gray-300 rounded-lg">
+                        <option value="Guntur">Guntur</option>
+                    </select>
+                </div>
+
+                <div class="flex flex-col">
+                    <label for="city" class="text-sm font-medium text-gray-700 mb-1">Select City</label>
+                    <select id="city" disabled class="p-2 bg-gray-100 border border-gray-300 rounded-lg">
+                        <option value="Mangalagiri">Mangalagiri</option>
+                    </select>
+                </div>
+
+                <div class="flex items-end mt-4 md:mt-0">
+                    <button id="searchButton" onclick="searchDonors()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
+                        Search
+                    </button>
+                </div>
+            </div>
+            
+            <div id="alertBox" class="p-4 m-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg" style="display: none;">
+            </div>
+        </div>
+
+        <div class="container-card bg-white rounded-xl shadow-xl overflow-hidden">
+            <h2 class="table-header text-white font-semibold p-3 text-lg">Search Results (<span id="resultCount">0</span> Donors Found)</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blood Group</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile No.</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Availability</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTableBody" class="bg-white divide-y divide-gray-200">
+                    </tbody>
+                </table>
+                <div id="noResults" class="p-6 text-center text-gray-500 font-medium" style="display: none;">
+                    No available donors found matching your criteria.
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        async function searchDonors() {
+            const selectedBloodGroup = document.getElementById('bloodGroup').value;
+            const resultsBody = document.getElementById('resultsTableBody');
+            const resultCountSpan = document.getElementById('resultCount');
+            const noResultsDiv = document.getElementById('noResults');
+            const alertBox = document.getElementById('alertBox');
+            const searchButton = document.getElementById('searchButton');
+            
+            resultsBody.innerHTML = '';
+            alertBox.style.display = 'none';
+            alertBox.textContent = '';
+            noResultsDiv.style.display = 'none';
+            resultCountSpan.textContent = '0';
+
+            if (!selectedBloodGroup) {
+                alertBox.textContent = 'Please select a Blood Group to search.';
+                alertBox.style.display = 'block';
+                return;
+            }
+
+            searchButton.disabled = true;
+            searchButton.textContent = 'Searching...';
+
+            try {
+                const url = `http://127.0.0.1:5000/api/donors/search?blood_group=${encodeURIComponent(selectedBloodGroup)}`;;
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`Server returned status: ${response.status}`);
+                }
+
+                const filteredDonors = await response.json();
+
+                resultCountSpan.textContent = filteredDonors.length;
+                
+                if (filteredDonors.length === 0) {
+                    noResultsDiv.style.display = 'block';
+                } else {
+                    renderResults(filteredDonors, resultsBody);
+                }
+
+            } catch (error) {
+                alertBox.textContent = `Error connecting to backend: ${error.message}. Ensure your Python Flask server (app.py) is running.`;
+                alertBox.style.display = 'block';
+                console.error('Fetch Error:', error);
+            } finally {
+                searchButton.disabled = false;
+                searchButton.textContent = 'Search';
+            }
+        }
+
+        function renderResults(donors, container) {
+            donors.forEach(donor => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-red-50 transition duration-150 ease-in-out';
+                
+                const statusClass = donor.Availability_Status === 'Available' ? 'status-available' : 'status-unavailable';
+                
+                row.innerHTML = `
+                    <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${donor.Name}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 font-semibold">${donor.Blood_Group}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">${donor.Phone_Number}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm ${statusClass}">${donor.Availability_Status}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-xs text-gray-500">${donor.Address}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="tel:${donor.Phone_Number}" class="text-red-600 hover:text-red-900 font-bold">CALL</a>
+                    </td>
+                `;
+                container.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>
