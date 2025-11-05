@@ -3,98 +3,159 @@ import os
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-# Initialize Flask, telling it to serve static files from the root directory '.'
+# Serve static files (index.html, admin.html) from this folder
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
+app.url_map.strict_slashes = False  # accept both /path and /path/
 
 DONOR_DATA = []
 DATA_FILE = 'donors.json'
-AVAILABLE_KEY = 'AVAILABLE'
+AVAILABLE_KEY = 'AVAILABLE'  # used for comparisons in upper-case
+
+
+# ---------- Load & Save Helpers ----------
 
 def load_donor_data():
-    """Loads donor data from the JSON file into the global DONOR_DATA list."""
+    """Load donors.json into DONOR_DATA."""
     global DONOR_DATA
     try:
-        # Use a path relative to this file (app.py)
-        # This is robust for both local (python app.py) and production (gunicorn)
         current_dir = os.path.dirname(os.path.abspath(__file__))
         file_path = os.path.join(current_dir, DATA_FILE)
-        
+
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
-            # Handle potential BOM (Byte Order Mark) at the start of the file
-            if content.startswith('\ufeff'):
+            if content.startswith('\ufeff'):  # strip BOM if present
                 content = content.lstrip('\ufeff')
             DONOR_DATA = json.loads(content)
-        
-        # This will now print to the Render logs, not your local terminal
-        print(f"Successfully loaded {len(DONOR_DATA)} donor records from {DATA_FILE}.")
+
+        print(f"✅ Loaded {len(DONOR_DATA)} donors from {DATA_FILE}")
 
     except FileNotFoundError:
-        print(f"Error: {DATA_FILE} not found at {file_path}. Please ensure the file is in the same directory.")
+        print(f"⚠️ {DATA_FILE} not found, starting with empty list.")
         DONOR_DATA = []
     except json.JSONDecodeError:
-        print(f"Error: Failed to decode JSON from {DATA_FILE}. Check file formatting.")
+        print(f"⚠️ JSON decode error in {DATA_FILE}, starting empty.")
         DONOR_DATA = []
 
-# --- Static File Routes ---
+
+def save_donor_data():
+    """Persist DONOR_DATA back to donors.json."""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(current_dir, DATA_FILE)
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(DONOR_DATA, f, indent=4)
+
+
+def next_id():
+    """Return the next integer id."""
+    return max((int(d.get('id', 0)) for d in DONOR_DATA), default=0) + 1
+
+
+# ---------- Static Routes ----------
 
 @app.route('/')
 def serve_index():
-    """Serves the main index.html file as the homepage."""
-    # send_from_directory will look in the 'static_folder' (which we set to '.')
     return send_from_directory('.', 'index.html')
+
 
 @app.route('/admin')
 def serve_admin():
-    """Serves the admin.html file."""
-    # We explicitly define this route so users can navigate to /admin
     return send_from_directory('.', 'admin.html')
 
-# --- API Routes ---
+
+# ---------- API: Status ----------
 
 @app.route('/api/status')
-def home():
-    """A status endpoint to check if the server is running and data is loaded."""
+def status():
     return jsonify({
-        "app_version": "1.2", # Updated version
+        "app_version": "1.4",
         "donor_count": len(DONOR_DATA),
-        "status": "Server is running."
+        "status": "Server is running ✅"
     })
+
+
+# ---------- API: Search Donors ----------
 
 @app.route('/api/donors/search', methods=['GET'])
 def search_donors():
     """
-    Handles searching for donors.
-    - If 'blood_group' param exists, filters by it (for index.html).
-    - If no param exists, returns all donors (for admin.html).
+    - No params -> return ALL donors (admin page).
+    - blood_group=X -> return donors with that group AND Availability_Status == 'Available' (public).
+    - Optional name=... -> substring, case-insensitive (works with or without blood_group).
     """
     blood_group_input = request.args.get('blood_group')
+    name_input = request.args.get('name')
 
-    # This logic now handles both index.html (with blood_group) and admin.html (no blood_group)
-    if not blood_group_input:
-        # No blood group provided, return all donors (for Admin panel)
+    # No filters: return all (used by admin)
+    if not blood_group_input and not name_input:
         return jsonify(DONOR_DATA)
 
-    # --- Filter by Blood Group (for Public Search) ---
-    search_key_blood = blood_group_input.strip().upper()
-    
+    bg_key = (blood_group_input or '').strip().upper()
+    name_key = (name_input or '').strip().upper()
+
     results = []
     for donor in DONOR_DATA:
-        # Clean data from file on-the-fly for robust matching
-        donor_blood_group = donor.get('Blood_Group', '').strip().upper()
-        availability_status = donor.get('Availability_Status', 'Unavailable').strip().upper()
-        
-        # Check both conditions
-        if donor_blood_group == search_key_blood and availability_status == AVAILABLE_KEY:
-            results.append(donor)
+        donor_blood = (donor.get('Blood_Group') or '').strip().upper()
+        donor_name = (donor.get('Name') or '').strip().upper()
+        avail = (donor.get('Availability_Status') or 'Unavailable').strip().upper()
+
+        # If blood group is provided, enforce AVAILABLE (public search behavior)
+        if bg_key:
+            if donor_blood != bg_key:
+                continue
+            if avail != AVAILABLE_KEY:
+                continue
+
+        # If name filter present, do case-insensitive substring match
+        if name_key and name_key not in donor_name:
+            continue
+
+        results.append(donor)
 
     return jsonify(results)
 
+
+# ---------- API: Create Donor ----------
+
+@app.route('/api/donors', methods=['POST', 'OPTIONS'])
+@app.route('/api/donors/register', methods=['POST', 'OPTIONS'])
+def create_donor():
+    # Handle preflight for CORS
+    if request.method == 'OPTIONS':
+        return ('', 204)
+
+    data = request.get_json(silent=True) or request.form.to_dict()
+
+    # Required fields (match your frontend)
+    required = ['Name', 'Phone_Number', 'Blood_Group']
+    missing = [f for f in required if not (data.get(f))]
+    if missing:
+        return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
+
+    # Accept either City or Address from clients; always store as Address
+    address = (data.get('Address') or data.get('City') or '').strip()
+
+    donor = {
+        "id": next_id(),
+        "Name": str(data['Name']).strip(),
+        "Phone_Number": str(data['Phone_Number']).strip(),
+        # normalize blood group in storage as uppercase like your JSON uses (A+, AB+ ...)
+        "Blood_Group": str(data['Blood_Group']).strip().upper(),
+        # keep pretty case for display; searching upper-cases internally
+        "Availability_Status": (data.get('Availability_Status') or 'Available').strip().capitalize(),
+        "Address": address
+    }
+
+    DONOR_DATA.append(donor)
+    save_donor_data()
+
+    return jsonify(donor), 201
+
+
+# ---------- API: Update Availability ----------
+
 @app.route('/api/donors/update_status', methods=['POST'])
 def update_status():
-    """Handles updating a donor's availability status."""
-    global DONOR_DATA
     try:
         data = request.get_json()
         donor_id = data.get('id')
@@ -103,39 +164,24 @@ def update_status():
         if not donor_id or not new_status:
             return jsonify({"error": "Missing 'id' or 'new_status'."}), 400
 
-        donor_found = False
-        for i, donor in enumerate(DONOR_DATA):
-            # Compare ID as string to be safe
+        for donor in DONOR_DATA:
             if str(donor.get('id')) == str(donor_id):
-                DONOR_DATA[i]['Availability_Status'] = new_status
-                donor_found = True
-                break
-        
-        if not donor_found:
-            return jsonify({"error": "Donor ID not found."}), 404
+                donor['Availability_Status'] = str(new_status).strip().capitalize()
+                save_donor_data()
+                return jsonify({"success": True, "message": "Status updated."})
 
-        # Save the updated data back to the file
-        # This makes the change persistent on the server
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        file_path = os.path.join(current_dir, DATA_FILE)
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(DONOR_DATA, f, indent=4)
-            
-        return jsonify({"success": True, "message": "Donor status updated."})
+        return jsonify({"error": "Donor not found."}), 404
 
     except Exception as e:
-        print(f"Error updating status: {e}")
+        print("Update error:", e)
         return jsonify({"error": "Internal server error."}), 500
 
-# --- Main execution ---
+
+# ---------- Main ----------
+
 if __name__ == '__main__':
-    # This block runs when you execute `python app.py` locally
     load_donor_data()
-    # Use environment variable for port, default to 5000 for local dev
     port = int(os.environ.get('PORT', 5000))
-    # Run on 0.0.0.0 to be accessible on your local network
     app.run(debug=True, host='0.0.0.0', port=port)
 else:
-    # This block runs when Gunicorn starts the app on Render
-    # Gunicorn handles the server, so we just need to load the data
     load_donor_data()

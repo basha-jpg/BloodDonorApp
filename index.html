@@ -1,199 +1,268 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blood Donor Search - College Project (Backend API)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f7f9fc;
-        }
-        .container-card {
-            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        .table-header {
-            background-color: #dc2626;
-        }
-        .status-available {
-            color: #10b981;
-            font-weight: 600;
-        }
-        .status-unavailable {
-            color: #f59e0b;
-            font-weight: 600;
-        }
-        .search-header-icon {
-            background-color: #b91c1c;
-            padding: 0.5rem;
-            border-radius: 0.5rem 0.5rem 0 0;
-        }
-    </style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Find Blood Donors</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:'Inter',sans-serif; background:#f7f9fc; }
+    .container-card { box-shadow: 0 10px 25px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05); }
+    .nav-link { color:#fff; font-weight:500; padding:0.5rem 0.75rem; border-radius:0.375rem; font-size:0.875rem; transition:background-color .2s; display:inline-block; }
+    .nav-link:hover { background:#1d4ed8; }
+    .status-available { color:#16a34a; font-weight:700; }
+    .status-unavailable { color:#ca8a04; font-weight:700; }
+
+    /* Hero background: subtle overlay to keep text readable */
+    .hero {
+      position: relative;
+      background-image: url('https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=1600&auto=format&fit=crop');
+      background-size: cover;
+      background-position: center;
+      border-radius: 0.75rem;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: linear-gradient( to bottom, rgba(0,0,0,.35), rgba(0,0,0,.45) );
+    }
+  </style>
 </head>
 <body class="p-4 md:p-8">
+  <div class="max-w-5xl mx-auto">
+    <nav class="bg-blue-800 rounded-lg shadow-md mb-6">
+      <div class="max-w-5xl mx-auto px-4">
+        <div class="flex justify-between h-16">
+          <div class="flex items-center"><span class="text-xl font-bold text-white">Public Donor Search</span></div>
+          <div class="flex items-center space-x-4">
+            <a href="./index.html" class="nav-link" style="background:#1e3a8a;">Search</a>
+            <a href="./admin.html" class="nav-link">Admin</a>
+          </div>
+        </div>
+      </div>
+    </nav>
 
-    <div class="max-w-4xl mx-auto">
-        
-        <div class="container-card bg-white rounded-xl shadow-xl overflow-hidden mb-8">
-            <div class="search-header-icon flex items-center justify-center space-x-2">
-                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                <h1 class="text-xl font-bold text-white uppercase tracking-wider">Search for Blood Donor</h1>
-            </div>
+    <!-- HERO (simple + not over-styled) -->
+    <section class="hero h-[220px] md:h-[260px] mb-6">
+      <div class="relative z-10 h-full flex flex-col items-start justify-center p-6 md:p-8 text-white">
+        <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">Donate Blood, Save Lives</h1>
+        <p class="mt-2 text-sm md:text-base text-gray-100/90 max-w-xl">
+          A single donation can help up to three people. Join the registry or find donors near you.
+        </p>
+        <a href="#register" class="mt-4 inline-block bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg">
+          Become a Donor
+        </a>
+      </div>
+    </section>
 
-            <div id="search-form" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                <div class="flex flex-col">
-                    <label for="bloodGroup" class="text-sm font-medium text-gray-700 mb-1">Blood Group</label>
-                    <select id="bloodGroup" class="p-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 transition duration-150 ease-in-out">
-                        <option value="">Select Blood Group</option>
-                        <option value="O+">O+</option>
-                        <option value="O-">O-</option>
-                        <option value="A+">A+</option>
-                        <option value="A-">A- (No Data)</option>
-                        <option value="B+">B+</option>
-                        <option value="B-">B-</option>
-                        <option value="AB+">AB+</option>
-                        <option value="AB-">AB-</option>
-                    </select>
-                </div>
-
-                <div class="flex flex-col">
-                    <label for="country" class="text-sm font-medium text-gray-700 mb-1">Select Country</label>
-                    <select id="country" disabled class="p-2 bg-gray-100 border border-gray-300 rounded-lg">
-                        <option value="INDIA">INDIA</option>
-                    </select>
-                </div>
-
-                <div class="flex flex-col">
-                    <label for="state" class="text-sm font-medium text-gray-700 mb-1">Select State</label>
-                    <select id="state" disabled class="p-2 bg-gray-100 border border-gray-300 rounded-lg">
-                        <option value="Andhra Pradesh">Andhra Pradesh</option>
-                    </select>
-                </div>
-
-                <div class="flex flex-col">
-                    <label for="district" class="text-sm font-medium text-gray-700 mb-1">Select District</label>
-                    <select id="district" disabled class="p-2 bg-gray-100 border border-gray-300 rounded-lg">
-                        <option value="Guntur">Guntur</option>
-                    </select>
-                </div>
-
-                <div class="flex flex-col">
-                    <label for="city" class="text-sm font-medium text-gray-700 mb-1">Select City</label>
-                    <select id="city" disabled class="p-2 bg-gray-100 border border-gray-300 rounded-lg">
-                        <option value="Mangalagiri">Mangalagiri</option>
-                    </select>
-                </div>
-
-                <div class="flex items-end mt-4 md:mt-0">
-                    <button id="searchButton" onclick="searchDonors()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
-                        Search
-                    </button>
-                </div>
-            </div>
-            
-            <div id="alertBox" class="p-4 m-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg" style="display: none;">
-            </div>
+    <div class="grid md:grid-cols-3 gap-6">
+      <!-- Search Panel -->
+      <div class="md:col-span-2 container-card bg-white rounded-xl p-4">
+        <h2 class="text-lg font-semibold mb-3">Search Donors</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <select id="bloodInput" class="p-2 border rounded-lg">
+            <option value="">Any Blood Group</option>
+            <option>O+</option><option>O-</option>
+            <option>A+</option><option>A-</option>
+            <option>B+</option><option>B-</option>
+            <option>AB+</option><option>AB-</option>
+          </select>
+          <input id="nameInput" type="text" placeholder="Filter by name (optional)" class="p-2 border rounded-lg">
+          <button id="searchBtn" class="p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold">Search</button>
         </div>
 
-        <div class="container-card bg-white rounded-xl shadow-xl overflow-hidden">
-            <h2 class="table-header text-white font-semibold p-3 text-lg">Search Results (<span id="resultCount">0</span> Donors Found)</h2>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blood Group</th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile No.</th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Availability</th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultsTableBody" class="bg-white divide-y divide-gray-200">
-                    </tbody>
-                </table>
-                <div id="noResults" class="p-6 text-center text-gray-500 font-medium" style="display: none;">
-                    No available donors found matching your criteria.
-                </div>
-            </div>
-        </div>
+        <div id="searchAlert" class="mt-4 hidden p-3 rounded-lg"></div>
 
+        <div class="mt-4 overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blood</th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody id="publicResults" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+          <div id="noResults" class="p-6 text-center text-gray-500 font-medium hidden">No donors found.</div>
+        </div>
+      </div>
+
+      <!-- Public Registration -->
+      <div id="register" class="container-card bg-white rounded-xl p-4">
+        <h2 class="text-lg font-semibold mb-3">Register as a Donor</h2>
+        <form id="publicRegisterForm" class="space-y-3" novalidate>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Full Name<span class="text-red-500">*</span></label>
+            <input id="pubName" type="text" required minlength="2" class="w-full p-2 border rounded-lg" placeholder="Your name">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Phone<span class="text-red-500">*</span></label>
+            <input id="pubPhone" type="tel" required pattern="^[0-9]{10}$" class="w-full p-2 border rounded-lg" placeholder="10-digit phone">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Blood Group<span class="text-red-500">*</span></label>
+            <select id="pubBlood" required class="w-full p-2 border rounded-lg">
+              <option value="">Select</option>
+              <option>O+</option><option>O-</option>
+              <option>A+</option><option>A-</option>
+              <option>B+</option><option>B-</option>
+              <option>AB+</option><option>AB-</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">City (optional)</label>
+            <input id="pubCity" type="text" class="w-full p-2 border rounded-lg" placeholder="City">
+          </div>
+          <button id="pubSubmit" type="submit" class="w-full p-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold">Submit</button>
+        </form>
+
+        <div id="publicAlert" class="mt-3 hidden p-3 rounded-lg"></div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        async function searchDonors() {
-            const selectedBloodGroup = document.getElementById('bloodGroup').value;
-            const resultsBody = document.getElementById('resultsTableBody');
-            const resultCountSpan = document.getElementById('resultCount');
-            const noResultsDiv = document.getElementById('noResults');
-            const alertBox = document.getElementById('alertBox');
-            const searchButton = document.getElementById('searchButton');
-            
-            resultsBody.innerHTML = '';
-            alertBox.style.display = 'none';
-            alertBox.textContent = '';
-            noResultsDiv.style.display = 'none';
-            resultCountSpan.textContent = '0';
+  <script>
+    const API_BASE_URL = "http://127.0.0.1:5000";
+    const CREATE_ENDPOINTS = ["/api/donors", "/api/donors/register"];
 
-            if (!selectedBloodGroup) {
-                alertBox.textContent = 'Please select a Blood Group to search.';
-                alertBox.style.display = 'block';
-                return;
-            }
+    const searchBtn = document.getElementById('searchBtn');
+    const bloodInput = document.getElementById('bloodInput');
+    const nameInput  = document.getElementById('nameInput');
+    const publicResults = document.getElementById('publicResults');
+    const noResults = document.getElementById('noResults');
+    const searchAlert = document.getElementById('searchAlert');
 
-            searchButton.disabled = true;
-            searchButton.textContent = 'Searching...';
+    function setSearchAlert(msg, ok=false) {
+      searchAlert.textContent = msg;
+      searchAlert.className = `mt-4 p-3 rounded-lg ${ok ? 'bg-green-100 border border-green-400 text-green-700' : 'bg-red-100 border border-red-400 text-red-700'}`;
+      searchAlert.classList.remove('hidden');
+      setTimeout(()=>searchAlert.classList.add('hidden'), 2500);
+    }
 
-            try {
-                const url = `http://127.0.0.1:5000/api/donors/search?blood_group=${encodeURIComponent(selectedBloodGroup)}`;;
-                const response = await fetch(url);
+    function rowFromDonor(d) {
+      const name  = d.Name ?? d.name ?? '';
+      const phone = d.Phone_Number ?? d.phone ?? '';
+      const blood = d.Blood_Group ?? d.blood_group ?? '';
+      const statusRaw = d.Availability_Status ?? d.status ?? 'Available';
+      const isAvail = String(statusRaw).toUpperCase() === 'AVAILABLE' || statusRaw === 'Available';
 
-                if (!response.ok) {
-                    throw new Error(`Server returned status: ${response.status}`);
-                }
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${name}</td>
+        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 font-semibold">${blood}</td>
+        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">${phone}</td>
+        <td class="px-3 py-3 whitespace-nowrap text-sm ${isAvail?'status-available':'status-unavailable'}">${isAvail?'Available':'Unavailable'}</td>
+      `;
+      return tr;
+    }
 
-                const filteredDonors = await response.json();
+    async function searchDonors() {
+      publicResults.innerHTML = '';
+      noResults.classList.add('hidden');
+      searchBtn.disabled = true;
+      const oldText = searchBtn.textContent;
+      searchBtn.textContent = 'Searching...';
 
-                resultCountSpan.textContent = filteredDonors.length;
-                
-                if (filteredDonors.length === 0) {
-                    noResultsDiv.style.display = 'block';
-                } else {
-                    renderResults(filteredDonors, resultsBody);
-                }
+      try {
+        const params = new URLSearchParams();
+        if (bloodInput.value) params.set('blood_group', bloodInput.value);
+        if (nameInput.value.trim()) params.set('name', nameInput.value.trim());
+        const url = `${API_BASE_URL}/api/donors/search${params.toString() ? ('?' + params.toString()) : ''}`;
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+        const data = await resp.json();
 
-            } catch (error) {
-                alertBox.textContent = `Error connecting to backend: ${error.message}. Ensure your Python Flask server (app.py) is running.`;
-                alertBox.style.display = 'block';
-                console.error('Fetch Error:', error);
-            } finally {
-                searchButton.disabled = false;
-                searchButton.textContent = 'Search';
-            }
+        if (!Array.isArray(data) || data.length === 0) {
+          noResults.classList.remove('hidden');
+          return;
         }
+        data.forEach(d => publicResults.appendChild(rowFromDonor(d)));
+      } catch (e) {
+        console.error(e);
+        setSearchAlert(e.message || 'Search failed');
+      } finally {
+        searchBtn.disabled = false;
+        searchBtn.textContent = oldText;
+      }
+    }
 
-        function renderResults(donors, container) {
-            donors.forEach(donor => {
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-red-50 transition duration-150 ease-in-out';
-                
-                const statusClass = donor.Availability_Status === 'Available' ? 'status-available' : 'status-unavailable';
-                
-                row.innerHTML = `
-                    <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${donor.Name}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 font-semibold">${donor.Blood_Group}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">${donor.Phone_Number}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm ${statusClass}">${donor.Availability_Status}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-xs text-gray-500">${donor.Address}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">
-                        <a href="tel:${donor.Phone_Number}" class="text-red-600 hover:text-red-900 font-bold">CALL</a>
-                    </td>
-                `;
-                container.appendChild(row);
-            });
-        }
-    </script>
+    // click + Enter to search
+    searchBtn.addEventListener('click', searchDonors);
+    [bloodInput, nameInput].forEach(el => {
+      el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); searchDonors(); } });
+    });
+
+    // Public Registration
+    const pubForm = document.getElementById('publicRegisterForm');
+    const pubAlert = document.getElementById('publicAlert');
+    function setPubAlert(msg, ok=false) {
+      pubAlert.textContent = msg;
+      pubAlert.className = `mt-3 p-3 rounded-lg ${ok ? 'bg-green-100 border border-green-400 text-green-700' : 'bg-red-100 border border-red-400 text-red-700'}`;
+      pubAlert.classList.remove('hidden');
+      setTimeout(()=>pubAlert.classList.add('hidden'), 3000);
+    }
+
+    pubForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('pubSubmit');
+      const name  = document.getElementById('pubName').value.trim();
+      const phone = document.getElementById('pubPhone').value.trim();
+      const blood = document.getElementById('pubBlood').value.trim();
+      const city  = document.getElementById('pubCity').value.trim();
+
+      const phoneOk = /^[0-9]{10}$/.test(phone);
+      if (!name || name.length < 2) { setPubAlert('Please enter a valid name (min 2 chars).'); return; }
+      if (!phoneOk) { setPubAlert('Phone must be 10 digits.'); return; }
+      if (!blood) { setPubAlert('Please select a blood group.'); return; }
+
+      const payload = {
+        Name: name,
+        Phone_Number: phone,
+        Blood_Group: blood,
+        Availability_Status: 'Available',
+        City: city || undefined
+      };
+
+      btn.disabled = true;
+      const oldText = btn.textContent;
+      btn.textContent = 'Submitting...';
+
+      try {
+        await tryCreateDonor(payload);
+        setPubAlert('Thank you! You have been registered as a donor.', true);
+        pubForm.reset();
+        // Show updated results (if filters match)
+        searchDonors();
+      } catch (err) {
+        console.error(err);
+        setPubAlert(`Could not register: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = oldText;
+      }
+    });
+
+    async function tryCreateDonor(payload) {
+      let lastErr;
+      for (const path of CREATE_ENDPOINTS) {
+        try {
+          const resp = await fetch(`${API_BASE_URL}${path}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+          return await resp.json();
+        } catch (e) { lastErr = e; }
+      }
+      throw lastErr || new Error('No create endpoint available');
+    }
+
+    // Load initial list on page open
+    window.addEventListener('DOMContentLoaded', searchDonors);
+  </script>
 </body>
 </html>

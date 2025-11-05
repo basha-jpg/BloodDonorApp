@@ -4,7 +4,7 @@
         "Name": "durgaprasad",
         "Blood_Group": "A+",
         "Phone_Number": "6305538849",
-        "Availability_Status": "Available",
+        "Availability_Status": "Unavailable",
         "Address": "Mangalagiri, Guntur District, AP"
     },
     {
@@ -12,7 +12,7 @@
         "Name": "TULASI Naveen",
         "Blood_Group": "A+",
         "Phone_Number": "6303194150",
-        "Availability_Status": "Available",
+        "Availability_Status": "Unavailable",
         "Address": "Mangalagiri, Guntur District, AP"
     },
     {
@@ -44,7 +44,7 @@
         "Name": "Gattem Harish",
         "Blood_Group": "A+",
         "Phone_Number": "9966955344",
-        "Availability_Status": "Available",
+        "Availability_Status": "Unavailable",
         "Address": "Mangalagiri, Guntur District, AP"
     },
     {
@@ -52,7 +52,7 @@
         "Name": "Varagani Aruna",
         "Blood_Group": "A+",
         "Phone_Number": "9014422090",
-        "Availability_Status": "Available",
+        "Availability_Status": "Unavailable",
         "Address": "Mangalagiri, Guntur District, AP"
     },
     {
@@ -468,7 +468,7 @@
         "Name": "Mahesh Jagannadham",
         "Blood_Group": "O-",
         "Phone_Number": "7842818927",
-        "Availability_Status": "Available",
+        "Availability_Status": "Unavailable",
         "Address": "Mangalagiri, Guntur District, AP"
     },
     {
@@ -510,5 +510,21 @@
         "Phone_Number": "9533243333",
         "Availability_Status": "Available",
         "Address": "Mangalagiri, Guntur District, AP"
+    },
+    {
+        "id": 65,
+        "Name": "shaik shanu",
+        "Phone_Number": "9347320779",
+        "Blood_Group": "O+",
+        "Availability_Status": "Available",
+        "Address": ""
+    },
+    {
+        "id": 66,
+        "Name": "sandeep",
+        "Phone_Number": "9121533255",
+        "Blood_Group": "A-",
+        "Availability_Status": "Available",
+        "Address": ""
     }
 ]

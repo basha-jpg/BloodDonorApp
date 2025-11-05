@@ -1,23 +1,20 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Panel - Blood Donor Management</title>
   <script src="https://cdn.tailwindcss.com"></script>
-
   <style>
     body { font-family: 'Inter', sans-serif; background-color: #f7f9fc; }
     .container-card { box-shadow: 0 10px 25px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05); }
     .table-header { background-color: #1e3a8a; }
-
-    /* Replaced Tailwind @apply with normal CSS so it works without a build step */
-    .nav-link { color:#fff; font-weight:500; padding:0.5rem 0.75rem; border-radius:0.375rem; font-size:0.875rem; transition:background-color .2s; display:inline-block; }
+    /* no @apply so it works with CDN Tailwind */
+    .nav-link { color:#fff; font-weight:500; padding:.5rem .75rem; border-radius:.375rem; font-size:.875rem; display:inline-block; transition:background-color .2s; }
     .nav-link:hover { background-color:#1d4ed8; }
-    .btn-available { background:#22c55e; color:#fff; font-weight:700; font-size:0.75rem; padding:0.25rem 0.5rem; border-radius:9999px; }
+    .btn-available { background:#22c55e; color:#fff; font-weight:700; font-size:.75rem; padding:.25rem .5rem; border-radius:9999px; }
     .btn-available:hover { background:#16a34a; }
-    .btn-unavailable { background:#f59e0b; color:#fff; font-weight:700; font-size:0.75rem; padding:0.25rem 0.5rem; border-radius:9999px; }
+    .btn-unavailable { background:#f59e0b; color:#fff; font-weight:700; font-size:.75rem; padding:.25rem .5rem; border-radius:9999px; }
     .btn-unavailable:hover { background:#d97706; }
     .status-available { color:#16a34a; font-weight:700; }
     .status-unavailable { color:#ca8a04; font-weight:700; }
@@ -26,6 +23,7 @@
 <body class="p-4 md:p-8">
   <div class="max-w-5xl mx-auto">
 
+    <!-- Top Nav -->
     <nav class="bg-blue-800 rounded-lg shadow-md mb-6">
       <div class="max-w-5xl mx-auto px-4">
         <div class="flex justify-between h-16">
@@ -40,20 +38,18 @@
       </div>
     </nav>
 
-    <!-- Password Protection Overlay -->
+    <!-- Password Overlay (locks the whole page) -->
     <div id="passwordOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
       <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
         <h2 class="text-lg font-bold mb-4">Admin Access Required</h2>
-        <p class="text-sm text-gray-600 mb-3">Please enter the password to manage donors.</p>
+        <p class="text-sm text-gray-600 mb-3">Enter the password to manage donors.</p>
         <input type="password" id="passwordInput" class="w-full p-2 border border-gray-300 rounded-lg mb-3" placeholder="Password...">
-        <button id="loginButton" onclick="checkPassword()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
-          Unlock
-        </button>
-        <p id="passwordError" class="text-red-500 text-xs mt-2" style="display:none;">Incorrect password. Please try again.</p>
+        <button onclick="checkPassword()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Unlock</button>
+        <p id="passwordError" class="text-red-500 text-xs mt-2 hidden">Incorrect password. Please try again.</p>
       </div>
     </div>
 
-    <!-- Main Content (Hidden until authenticated) -->
+    <!-- Main Content -->
     <div id="mainContent" class="hidden">
       <div class="container-card bg-white rounded-xl shadow-xl overflow-hidden">
         <h2 class="table-header text-white font-semibold p-3 text-lg">
@@ -64,7 +60,7 @@
           <input type="text" id="nameFilter" onkeyup="filterTable()" placeholder="Filter by name..." class="w-full p-2 border border-gray-300 rounded-lg">
         </div>
 
-        <div id="adminAlertBox" class="p-4 m-4" style="display:none;"></div>
+        <div id="adminAlertBox" class="p-4 m-4 hidden"></div>
 
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
@@ -80,9 +76,7 @@
             </thead>
             <tbody id="adminTableBody" class="bg-white divide-y divide-gray-200"></tbody>
           </table>
-          <div id="noAdminResults" class="p-6 text-center text-gray-500 font-medium" style="display:none;">
-            Loading donor data...
-          </div>
+          <div id="noAdminResults" class="p-6 text-center text-gray-500 font-medium hidden">Loading donor data...</div>
         </div>
       </div>
     </div>
@@ -90,76 +84,72 @@
   </div>
 
   <script>
-    const ADMIN_PASSWORD = "project2025";
-    const API_BASE_URL = "http://127.0.0.1:5000"; // <-- define base URL
+    // === CONFIG ===
+    const ADMIN_PASSWORD = "project2025";               // change if you want
+    const API_BASE_URL   = "http://127.0.0.1:5000";     // your Flask server
     let allDonorsCache = [];
 
+    // === AUTH ===
     function checkPassword() {
-      const passwordInput = document.getElementById('passwordInput');
-      const passwordError = document.getElementById('passwordError');
-
-      if (passwordInput.value === ADMIN_PASSWORD) {
+      const input = document.getElementById('passwordInput');
+      const error = document.getElementById('passwordError');
+      if (input.value === ADMIN_PASSWORD) {
         document.getElementById('passwordOverlay').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
         loadAllDonors();
       } else {
-        passwordError.style.display = 'block';
+        error.classList.remove('hidden');
       }
     }
 
+    // === LOAD ALL DONORS (admin view) ===
     async function loadAllDonors() {
-      const resultsBody = document.getElementById('adminTableBody');
-      const resultCountSpan = document.getElementById('totalCount');
-      const noResultsDiv = document.getElementById('noAdminResults');
+      const body = document.getElementById('adminTableBody');
+      const total = document.getElementById('totalCount');
+      const noRes = document.getElementById('noAdminResults');
       const alertBox = document.getElementById('adminAlertBox');
 
-      resultsBody.innerHTML = '';
-      noResultsDiv.style.display = 'block';
-      noResultsDiv.textContent = 'Loading donor data...';
-      alertBox.style.display = 'none';
+      body.innerHTML = '';
+      noRes.classList.remove('hidden');
+      noRes.textContent = 'Loading donor data...';
+      alertBox.classList.add('hidden');
 
       try {
-        const url = `${API_BASE_URL}/api/donors/search`;
-        const response = await fetch(url);
+        const resp = await fetch(`${API_BASE_URL}/api/donors/search`);
+        if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+        allDonorsCache = await resp.json();
+        total.textContent = allDonorsCache.length;
 
-        if (!response.ok) throw new Error(`Server returned status: ${response.status}`);
-
-        allDonorsCache = await response.json();
-        resultCountSpan.textContent = allDonorsCache.length;
-
-        if (allDonorsCache.length === 0) {
-          noResultsDiv.textContent = 'No donors found in the database.';
-        } else {
-          noResultsDiv.style.display = 'none';
-          renderAdminTable(allDonorsCache, resultsBody);
+        if (!Array.isArray(allDonorsCache) || allDonorsCache.length === 0) {
+          noRes.textContent = 'No donors found in the database.';
+          return;
         }
-      } catch (error) {
-        showAlert(`Error loading donors: ${error.message}. Ensure backend is running and CORS is enabled if needed.`, 'error');
-        noResultsDiv.textContent = 'Error loading donor data.';
-        console.error('Fetch Error:', error);
+        noRes.classList.add('hidden');
+        renderAdminTable(allDonorsCache, body);
+      } catch (e) {
+        showAlert(`Error loading donors: ${e.message}. Ensure backend is running.`, 'error');
+        noRes.textContent = 'Error loading donor data.';
+        console.error(e);
       }
     }
 
+    // === RENDER TABLE ===
     function renderAdminTable(donors, container) {
       container.innerHTML = '';
-      donors.forEach((donor) => {
+      donors.forEach(donor => {
+        const isAvail = String(donor.Availability_Status).toUpperCase() === 'AVAILABLE';
+        const statusText = isAvail ? 'Available' : 'Unavailable';
         const row = document.createElement('tr');
         row.id = `donor-row-${donor.id}`;
-
-        const isAvailable = String(donor.Availability_Status).toUpperCase() === 'AVAILABLE';
-        const statusText = isAvailable ? 'Available' : 'Unavailable';
-
         row.innerHTML = `
           <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-500">${donor.id}</td>
           <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${donor.Name}</td>
           <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 font-semibold">${donor.Blood_Group}</td>
           <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">${donor.Phone_Number}</td>
-          <td id="status-${donor.id}" class="px-3 py-3 whitespace-nowrap text-sm ${isAvailable ? 'status-available' : 'status-unavailable'}">
-            ${statusText}
-          </td>
+          <td id="status-${donor.id}" class="px-3 py-3 whitespace-nowrap text-sm ${isAvail ? 'status-available' : 'status-unavailable'}">${statusText}</td>
           <td class="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">
-            <button id="btn-${donor.id}" onclick="updateStatus('${donor.id}')" class="${isAvailable ? 'btn-unavailable' : 'btn-available'}">
-              Set ${isAvailable ? 'Unavailable' : 'Available'}
+            <button id="btn-${donor.id}" onclick="updateStatus('${donor.id}')" class="${isAvail ? 'btn-unavailable' : 'btn-available'}">
+              Set ${isAvail ? 'Unavailable' : 'Available'}
             </button>
           </td>
         `;
@@ -167,36 +157,27 @@
       });
     }
 
-    // Fixed: matches onclick signature and safely toggles UI + server
+    // === TOGGLE AVAILABILITY ===
     function updateStatus(donorId) {
       const statusEl = document.getElementById(`status-${donorId}`);
       const btnEl = document.getElementById(`btn-${donorId}`);
-
-      if (!statusEl || !btnEl) {
-        showAlert('UI elements not found for this row. Please reload.', 'error');
-        return;
-      }
+      if (!statusEl || !btnEl) { showAlert('Row not found. Please reload.', 'error'); return; }
 
       const current = statusEl.textContent.trim().toUpperCase();
       const newStatus = current === 'AVAILABLE' ? 'Unavailable' : 'Available';
 
       btnEl.disabled = true;
-      const prevBtnText = btnEl.textContent;
+      const prevText = btnEl.textContent;
       btnEl.textContent = 'Updating...';
-
-      const payload = { id: donorId, new_status: newStatus };
 
       fetch(`${API_BASE_URL}/api/donors/update_status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ id: donorId, new_status: newStatus })
       })
-      .then(resp => {
-        if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
-        return resp.json();
-      })
+      .then(r => { if (!r.ok) throw new Error(`Server returned ${r.status}`); return r.json(); })
       .then(() => {
-        // Update UI
+        // update UI
         statusEl.textContent = newStatus;
         statusEl.classList.remove('status-available', 'status-unavailable');
         statusEl.classList.add(newStatus === 'Available' ? 'status-available' : 'status-unavailable');
@@ -205,49 +186,40 @@
         btnEl.classList.remove('btn-available', 'btn-unavailable');
         btnEl.classList.add(newStatus === 'Available' ? 'btn-unavailable' : 'btn-available');
 
-        // Sync cache
+        // sync cache
         const idx = allDonorsCache.findIndex(d => String(d.id) === String(donorId));
         if (idx !== -1) allDonorsCache[idx].Availability_Status = newStatus;
 
         showAlert('Status updated successfully.', 'success');
       })
       .catch(err => {
+        console.error(err);
         showAlert(`Update failed: ${err.message}`, 'error');
-        console.error('Update Error:', err);
-        btnEl.textContent = prevBtnText;
+        btnEl.textContent = prevText;
       })
-      .finally(() => {
-        btnEl.disabled = false;
-      });
+      .finally(() => { btnEl.disabled = false; });
     }
 
+    // === FILTER BY NAME (client-side) ===
     function filterTable() {
-      const filterInput = document.getElementById('nameFilter');
-      const container = document.getElementById('adminTableBody');
-
-      if (!filterInput || filterInput.value.trim() === '') {
-        renderAdminTable(allDonorsCache, container);
-        return;
-      }
-      const filterValue = filterInput.value.trim().toUpperCase();
-
-      const filtered = allDonorsCache.filter(d => {
-        const name = d.Name ? String(d.Name).toUpperCase() : '';
-        return name.includes(filterValue);
-      });
-
-      renderAdminTable(filtered, container);
+      const q = (document.getElementById('nameFilter').value || '').trim().toUpperCase();
+      const body = document.getElementById('adminTableBody');
+      if (!q) { renderAdminTable(allDonorsCache, body); return; }
+      const filtered = allDonorsCache.filter(d => (d.Name || '').toUpperCase().includes(q));
+      renderAdminTable(filtered, body);
     }
 
-    function showAlert(message, type = 'error') {
-      const alertBox = document.getElementById('adminAlertBox');
-      alertBox.textContent = message;
-      alertBox.className = type === 'error'
+    // === ALERTS ===
+    function showAlert(message, type='error') {
+      const box = document.getElementById('adminAlertBox');
+      box.textContent = message;
+      box.className = type === 'error'
         ? 'p-4 m-4 bg-red-100 border border-red-400 text-red-700 rounded-lg'
         : 'p-4 m-4 bg-green-100 border border-green-400 text-green-700 rounded-lg';
-      alertBox.style.display = 'block';
-      setTimeout(() => { alertBox.style.display = 'none'; }, 3000);
+      box.classList.remove('hidden');
+      setTimeout(() => box.classList.add('hidden'), 3000);
     }
   </script>
 </body>
 </html>
+
